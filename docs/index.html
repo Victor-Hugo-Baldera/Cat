@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Catálogo de Quinua</title>
+  <link rel="stylesheet" href="estilos.css" />
+</head>
+<body>
+
+  <main id="libro">
+    <!-- ===================== -->
+    <!-- PORTADA -->
+    <!-- ===================== -->
+    <section class="pagina portada">
+      <div class="header">
+        <img src="img/untrm.png" class="logo-left" alt="UNTRM" />
+        <img src="img/ceigras_logo.jpeg" class="logo-right" alt="CEIGRAS" />
+      </div>
+
+      <div class="hero">
+        <img src="img/quinua1.jpeg" class="bg" alt="Portada quinua" />
+        <div class="overlay"></div>
+
+        <div class="contenido">
+          <p class="mini">CATÁLOGO DE</p>
+          <div class="linea"></div>
+          <h1>QUINUA</h1>
+          <div class="linea"></div>
+          <p class="sub">DEL BANCO DE GERMOPLASMA DE LA UNTRM</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== -->
+    <!-- SEGUNDA HOJA -->
+    <!-- ===================== -->
+    <section class="pagina segunda-hoja">
+      <img src="img/quinua2.jpeg" class="fondo-segunda" alt="Quinua 2" />
+      <div class="capa-azul"></div>
+
+      <div class="contenido-segunda">
+        <p class="encabezado-superior">
+          UNIVERSIDAD NACIONAL TORIBIO RODRÍGUEZ DE MENDOZA DE AMAZONAS<br />
+          CENTRO DE INVESTIGACIÓN<br />
+          EN GRANOS Y SEMILLAS CEIGRAS
+        </p>
+
+        <div class="bloque-titulo">
+          <p class="catalogo">CATÁLOGO DE</p>
+          <div class="linea linea-centro"></div>
+          <h1 class="titulo-segunda">QUINUA</h1>
+          <div class="linea linea-centro"></div>
+          <p class="subtitulo">DEL BANCO DE GERMOPLASMA DE LA UNTRM</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const SHEET_ID = "1Rq304iX6UYhdvwDt7oaQHAIpIgtWKvEJb3WreFOw0Fw";
+    const SHEET_NAME = "STable1";
+    const SHEET_URL =
+      `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?sheet=${encodeURIComponent(SHEET_NAME)}&tqx=out:json`;
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function normalizeKey(text) {
+      return String(text || "")
+        .trim()
+        .toUpperCase()
+        .replace(/\s+/g, " ");
+    }
+
+    function getCellValue(cell) {
+      if (!cell) return "";
+      return cell.v ?? "";
+    }
+
+    function getHeaderName(col, index) {
+      return normalizeKey(col.label || col.id || `COL_${index}`);
+    }
+
+    function rowToObject(headers, row) {
+      const obj = {};
+      headers.forEach((header, index) => {
+        obj[header] = getCellValue(row.c?.[index]);
+      });
+      return obj;
+    }
+
+    function getField(item, ...names) {
+      for (const name of names) {
+        const key = normalizeKey(name);
+        const value = item[key];
+        if (value !== undefined && value !== null && String(value).trim() !== "") {
+          return value;
+        }
+      }
+      return "";
+    }
+
+    function contarCamposConInfo(item) {
+      let total = 0;
+      for (const key in item) {
+        const value = item[key];
+        if (value !== null && value !== undefined && String(value).trim() !== "") {
+          total += 1;
+        }
+      }
+      return total;
+    }
+
+    function renderCampo(label, value) {
+      return `
+        <div class="campo">
+          <div class="campo-label">${escapeHtml(label)}</div>
+          <div class="campo-value">${escapeHtml(value || "")}</div>
+        </div>
+      `;
+    }
+
+    function renderDescriptor(nombre, value) {
+      if (value === null || value === undefined || String(value).trim() === "") {
+        return "";
+      }
+
+      return `
+        <tr>
+          <td class="desc-label">${escapeHtml(nombre)}</td>
+          <td class="desc-value">${escapeHtml(value)}</td>
+        </tr>
+      `;
+    }
+
+    function createFicha(item, numeroPagina) {
+      const codigo = getField(item, "UNTRM code", "UNTRM CODE");
+      const imageUrl = getField(item, "image", "IMAGE");
+
+      const filasTabla = [
+        renderDescriptor("Color de la panoja al 50% de floración", getField(item, "PCF")),
+        renderDescriptor("Color de la panoja al 50% de madurez fisiológica", getField(item, "PCM")),
+        renderDescriptor("Forma de la panoja", getField(item, "PSH")),
+        renderDescriptor("Tipo de crecimiento", getField(item, "GH")),
+        renderDescriptor("Color del tegumento de la semilla", getField(item, "SCC")),
+        renderDescriptor("Forma del grano", getField(item, "GS")),
+        renderDescriptor("Densidad de la panoja", getField(item, "PDEN", "PDE")),
+        renderDescriptor("Color del tallo principal", getField(item, "MSC")),
+        renderDescriptor("Número de días a 50% de floración", getField(item, "DF")),
+        renderDescriptor("Número de días a 50% de madurez fisiológica", getField(item, "PM")),
+        renderDescriptor("Altura de la planta", getField(item, "PH")),
+        renderDescriptor("Diámetro del tallo", getField(item, "SD")),
+        renderDescriptor("Longitud de la panoja", getField(item, "PL")),
+        renderDescriptor("Diámetro de la panoja", getField(item, "PD")),
+        renderDescriptor("Peso de 1000 semillas", getField(item, "TSW")),
+        renderDescriptor("Índice de cosecha", getField(item, "HI"))
+      ].join("");
+
+      return `
+        <section class="pagina ficha-quinua">
+          <div class="ficha-wrap">
+            <div class="ficha-topbar">
+              Universidad Nacional Toribio Rodríguez de Mendoza de Amazonas | Centro de Investigación e Innovación en Granos y Semillas
+            </div>
+
+            <div class="ficha-grid">
+              <div class="ficha-left">
+                <div class="codigo-box">
+                  <div class="codigo-pill">Código Pasaporte:</div>
+                  <div class="codigo-main">${escapeHtml(codigo || "")}</div>
+                </div>
+
+                <div class="ubicacion-box">
+                  ${renderCampo("Altitud:", "2300")}
+                  ${renderCampo("Departamento:", "Amazonas")}
+                  ${renderCampo("Provincia:", "Luya")}
+                  ${renderCampo("Distrito:", "Lonya Chico")}
+                  ${renderCampo("Localidad:", "EE. Lonya Chico")}
+                  ${renderCampo("Agroecological zones:", getField(item, "agroecological zones", "AGROECOLOGICAL ZONES"))}
+                </div>
+
+                <div class="decoracion-izquierda"></div>
+              </div>
+
+              <div class="ficha-right">
+                <div class="imagen-box">
+                  ${
+                    imageUrl
+                      ? `<img src="${escapeHtml(imageUrl)}" alt="Imagen de accesión">`
+                      : `<div class="imagen-vacia">Sin imagen</div>`
+                  }
+                </div>
+
+                <div class="tabla-box">
+                  <table>
+                    <tbody>
+                      ${filasTabla}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <div class="ficha-footer">
+              <div class="footer-left">Catálogo de quinua del Banco de Germoplasma de la UNTRM</div>
+              <div class="footer-page">${numeroPagina}</div>
+            </div>
+          </div>
+        </section>
+      `;
+    }
+
+    async function cargarDatos() {
+      const response = await fetch(SHEET_URL);
+      const raw = await response.text();
+      const json = JSON.parse(raw.substring(47).slice(0, -2));
+
+      const cols = json.table.cols || [];
+      const rows = json.table.rows || [];
+
+      const headers = cols.map(getHeaderName);
+      return rows.map(row => rowToObject(headers, row));
+    }
+
+    async function iniciar() {
+      try {
+        const datos = await cargarDatos();
+        const libro = document.getElementById("libro");
+        let pagina = 3;
+
+        datos.forEach(item => {
+          const totalConInfo = contarCamposConInfo(item);
+          if (totalConInfo >= 5) {
+            libro.insertAdjacentHTML("beforeend", createFicha(item, pagina));
+            pagina += 1;
+          }
+        });
+      } catch (error) {
+        console.error("Error al cargar la hoja:", error);
+      }
+    }
+
+    iniciar();
+  </script>
+</body>
+</html>
