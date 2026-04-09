@@ -125,8 +125,8 @@
 
       return `
         <tr>
-          <td class="desc-label">${escapeHtml(nombre)}</td>
-          <td class="desc-value">${escapeHtml(valor)}</td>
+          <td class="desc-label">${nombre}</td>
+          <td class="desc-value">${valor}</td>
         </tr>
       `;
     }
@@ -143,7 +143,103 @@
       return `<img src="${escapeHtml(src)}" alt="${escapeHtml(alt)}" />`;
     }
 
-    function createFicha(item, numeroPagina) {
+    /* ===================================== */
+    /* DICCIONARIO TÉCNICO AGRÍCOLA */
+    /* ===================================== */
+
+    const diccionarioAgricola = {
+      "loose": "laxa",
+      "compact": "compacta",
+      "intermediate": "intermedia",
+      "erect": "erecto",
+      "semi-erect": "semierecto",
+      "prostrate": "postrado",
+      "present": "presente",
+      "absent": "ausente",
+      "white": "blanco",
+      "yellow": "amarillo",
+      "red": "rojo",
+      "purple": "morado",
+      "green": "verde",
+      "brown": "marrón",
+      "black": "negro",
+      "cream": "crema",
+      "oval": "ovalado",
+      "elliptic": "elíptico",
+      "round": "redondo",
+      "amaranthiform": "amarantiforme",
+      "glomerulate": "glomerulada",
+      "sweet": "dulce",
+      "bitter": "amarga",
+      "valley quinoa": "quinua de valle",
+      "mild": "leve",
+      "moderate": "moderado",
+      "severe": "severo",
+      "green yellow": "verde amarillo",
+      "light green": "verde claro",
+      "dark green": "verde oscuro",
+      "light red": "rojo claro",
+      "dark red": "rojo oscuro"
+    };
+
+    /* ===================================== */
+    /* UTILIDADES DE FORMATO */
+    /* ===================================== */
+
+    function capitalizar(texto) {
+      if (!texto) return "";
+      return texto.charAt(0).toUpperCase() + texto.slice(1);
+    }
+
+    /* ===================================== */
+    /* TRADUCCIÓN AUTOMÁTICA INGLÉS -> ESPAÑOL */
+    /* ===================================== */
+
+    async function traducirTexto(texto) {
+      if (texto === null || texto === undefined) return "";
+
+      const limpio = String(texto).trim();
+      if (!limpio) return "";
+
+      const clave = limpio.toLowerCase();
+
+      if (diccionarioAgricola[clave]) {
+        return diccionarioAgricola[clave];
+      }
+
+      const pareceNumeroOMedida = /^[\d\s.,\-/%]+([a-zA-Z.°]+)?$/;
+      const pareceCodigo = /^[A-Z0-9_-]+$/;
+
+      if (pareceNumeroOMedida.test(limpio) || pareceCodigo.test(limpio)) {
+        return limpio;
+      }
+
+      try {
+        const res = await fetch(
+          "https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=es&dt=t&q=" +
+          encodeURIComponent(limpio)
+        );
+
+        const data = await res.json();
+        const traduccion = data?.[0]?.map(parte => parte[0]).join("") || limpio;
+        const claveTraducida = String(traduccion).trim().toLowerCase();
+
+        if (diccionarioAgricola[claveTraducida]) {
+          return diccionarioAgricola[claveTraducida];
+        }
+
+        return traduccion;
+      } catch (e) {
+        return limpio;
+      }
+    }
+
+    async function traducirSiTexto(valor) {
+      const traducido = await traducirTexto(valor);
+      return capitalizar(traducido);
+    }
+
+    async function createFicha(item, numeroPagina) {
       const codigo = getField(item, "UNTRM code", "UNTRM CODE", "CODE");
 
       const image1 = getField(item, "image_panoja", "IMAGE_PANOJA");
@@ -152,10 +248,15 @@
       const image4 = getField(item, "image_4", "IMAGE_4");
 
       const tablaColeccion = [
+        renderDescriptor("Nombre Científico", getField(item, "Nombre Científico") || "<em>Chenopodium quinoa</em> Willd."),
+        renderDescriptor("Nombre Común", getField(item, "Nombre Común") || "Quinua"),
         renderDescriptor("Código UNTRM", codigo || "SIN CÓDIGO"),
-        renderDescriptor("Zona agroecológica", getField(item, "AGROECOLOGICAL ZONES", "agroecological zones") || "Valley Quinoa"),
-        renderDescriptor("Departamento", getField(item, "DEPARTAMENTO") || "AMAZONAS"),
-        renderDescriptor("Provincia", getField(item, "PROVINCIA") || "LUYA"),
+        renderDescriptor(
+          "Zona agroecológica",
+          await traducirSiTexto(getField(item, "AGROECOLOGICAL ZONES", "agroecological zones")) || "Quinua de valle"
+        ),
+        renderDescriptor("Departamento", getField(item, "DEPARTAMENTO") || "Amazonas"),
+        renderDescriptor("Provincia", getField(item, "PROVINCIA") || "Luya"),
         renderDescriptor("Distrito", getField(item, "DISTRITO") || "Lonya Chico"),
         renderDescriptor("Localidad", getField(item, "LOCALIDAD") || "EE. Lonya Chico"),
         renderDescriptor("Altitud", getField(item, "ALTITUD") || "2300 m.s.n.m.")
@@ -163,31 +264,64 @@
 
       const tablaCuantitativos = [
         renderDescriptor("Número de días a 50% de floración", getField(item, "DF")),
-        renderDescriptor("Severidad de mildiu", getField(item, "IPER")),
         renderDescriptor("Contenido de clorofila al 50% de floración", getField(item, "SPAD")),
-        renderDescriptor("Longitud de panoja", getField(item, "PL")),
-        renderDescriptor("Diámetro de panoja", getField(item, "PD")),
+        renderDescriptor("Longitud de panoja (cm)", getField(item, "PL")),
+        renderDescriptor("Diámetro de panoja (cm)", getField(item, "PD")),
         renderDescriptor("Número de días a 50% de madurez fisiológica", getField(item, "PM")),
-        renderDescriptor("Altura de planta", getField(item, "PH")),
-        renderDescriptor("Diámetro de tallo", getField(item, "SD")),
-        renderDescriptor("Peso de 1000 semillas", getField(item, "TSW")),
-        renderDescriptor("Peso de 10 panojas", getField(item, "PB")),
-        renderDescriptor("Peso de semilla de 10 plantas", getField(item, "SW")),
-        renderDescriptor("Índice de cosecha", getField(item, "HI"))
+        renderDescriptor("Altura de planta (cm)", getField(item, "PH")),
+        renderDescriptor("Diámetro de tallo (mm)", getField(item, "SD")),
+        renderDescriptor("Peso de 1000 semillas (g)", getField(item, "TSW")),
+        renderDescriptor("Peso de 10 panojas (g)", getField(item, "PB")),
+        renderDescriptor("Peso de semilla de 10 plantas (g)", getField(item, "SW")),
+        renderDescriptor("Índice de cosecha (%)", getField(item, "HI")),
+         renderDescriptor("Severidad de mildiu (%)", getField(item, "IPER"))
       ].join("");
 
       const tablaCualitativos = [
-        renderDescriptor("Color de panoja al 50% de floración", getField(item, "PCF")),
-        renderDescriptor("Presencia de Epicauta sp.", getField(item, "EPI")),
-        renderDescriptor("Color del tallo principal", getField(item, "MSC")),
-        renderDescriptor("Forma de panoja", getField(item, "PSH")),
-        renderDescriptor("Densidad de panoja", getField(item, "PDEN", "PDE")),
-        renderDescriptor("Color de panoja al 50% de madurez fisiológica", getField(item, "PCM")),
-        renderDescriptor("Hábito de crecimiento", getField(item, "GH")),
-        renderDescriptor("Grado de dehiscencia", getField(item, "DD")),
-        renderDescriptor("Acame", getField(item, "LOD")),
-        renderDescriptor("Color de episperma", getField(item, "SCC")),
-        renderDescriptor("Forma del grano", getField(item, "GS"))
+        renderDescriptor(
+          "Color de panoja al 50% de floración",
+          await traducirSiTexto(getField(item, "PCF"))
+        ),
+        renderDescriptor(
+          "Color del tallo principal",
+          await traducirSiTexto(getField(item, "MSC"))
+        ),
+        renderDescriptor(
+          "Forma de panoja",
+          await traducirSiTexto(getField(item, "PSH"))
+        ),
+        renderDescriptor(
+          "Densidad de panoja",
+          await traducirSiTexto(getField(item, "PDEN", "PDE"))
+        ),
+        renderDescriptor(
+          "Color de panoja al 50% de madurez fisiológica",
+          await traducirSiTexto(getField(item, "PCM"))
+        ),
+        renderDescriptor(
+          "Hábito de crecimiento",
+          await traducirSiTexto(getField(item, "GH"))
+        ),
+        renderDescriptor(
+          "Grado de dehiscencia",
+          await traducirSiTexto(getField(item, "DD"))
+        ),
+        renderDescriptor(
+          "Acame",
+          await traducirSiTexto(getField(item, "LOD"))
+        ),
+        renderDescriptor(
+          "Color de episperma",
+          await traducirSiTexto(getField(item, "SCC"))
+        ),
+        renderDescriptor(
+          "Forma del grano",
+          await traducirSiTexto(getField(item, "GS"))
+        ),
+        renderDescriptor(
+          "Presencia de <i>Epicauta</i> sp.",
+          await traducirSiTexto(getField(item, "EPI"))
+        )
       ].join("");
 
       return `
@@ -279,13 +413,14 @@
         const libro = document.getElementById("libro");
         let pagina = 3;
 
-        datos.forEach(item => {
+        for (const item of datos) {
           const totalConInfo = contarCamposConInfo(item);
           if (totalConInfo >= 5) {
-            libro.insertAdjacentHTML("beforeend", createFicha(item, pagina));
+            const fichaHtml = await createFicha(item, pagina);
+            libro.insertAdjacentHTML("beforeend", fichaHtml);
             pagina += 1;
           }
-        });
+        }
       } catch (error) {
         console.error("Error al cargar la hoja:", error);
       }
